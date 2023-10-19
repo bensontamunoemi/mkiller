@@ -8,7 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var timer: Timer?
     var lastClipboardContents: String?
     var gptResponse: String?
-    let openAIKey = "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"
+    let openAIKey = ""
     
     
     let costExam: [[String: String]] = [
