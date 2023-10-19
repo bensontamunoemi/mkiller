@@ -219,3 +219,6 @@ class TooltipWindow: NSWindow {
         return true
     }
 }
+
+
+//good
