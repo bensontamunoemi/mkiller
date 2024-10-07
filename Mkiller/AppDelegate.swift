@@ -144,7 +144,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func requestGPTResponse(with input: String, completion: @escaping (String?) -> Void) {
-        guard let url = URL(string: "https://api.openai.com/v1/engines/text-davinci-003/completions") else {
+        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
             completion(nil)
             return
         }
@@ -154,10 +154,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         request.addValue("Bearer \(openAIKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let parameters = [
-            "prompt": "[System]: You have a new task:\n[User]: \(input)\n[Assistant]:",
+        let parameters: [String: Any] = [
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                ["role": "system", "content": "You are a helpful assistant."],
+                ["role": "user", "content": input]
+            ],
             "max_tokens": 300
-        ] as [String : Any]
+        ]
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: .fragmentsAllowed)
@@ -175,11 +179,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Raw response: \(String(data: data, encoding: .utf8) ?? "Unable to decode response")")
                 let decoder = JSONDecoder()
                 do {
-                    let gptResponse = try decoder.decode(GPTResponse.self, from: data)
-                    let text = gptResponse.choices.first?.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let apiResponse = try decoder.decode(GPTChatResponse.self, from: data)
+                    let text = apiResponse.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines)
                     completion(text)
                 } catch {
-                    print("Decoding error: \(error)")
+                    if let apiError = try? decoder.decode(APIError.self, from: data) {
+                        print("API Error: \(apiError.error.message)")
+                    } else {
+                        print("Decoding error: \(error)")
+                    }
                     completion(nil)
                 }
             }
@@ -207,11 +215,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-struct GPTResponse: Codable {
+struct GPTChatResponse: Codable {
     struct Choice: Codable {
-        let text: String
+        let message: Message
+    }
+    struct Message: Codable {
+        let content: String
     }
     let choices: [Choice]
+}
+
+struct APIError: Codable {
+    let error: ErrorDetails
+    
+    struct ErrorDetails: Codable {
+        let message: String
+        let type: String
+        let param: String?
+        let code: String
+    }
 }
 
 class TooltipWindow: NSWindow {
@@ -219,6 +241,3 @@ class TooltipWindow: NSWindow {
         return true
     }
 }
-
-
-//good
