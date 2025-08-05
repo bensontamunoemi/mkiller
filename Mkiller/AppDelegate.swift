@@ -174,21 +174,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error: \(error)")
-                completion(nil)
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
             } else if let data = data {
                 print("Raw response: \(String(data: data, encoding: .utf8) ?? "Unable to decode response")")
                 let decoder = JSONDecoder()
                 do {
                     let apiResponse = try decoder.decode(GPTChatResponse.self, from: data)
                     let text = apiResponse.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                    completion(text)
+                    DispatchQueue.main.async {
+                        completion(text)
+                    }
                 } catch {
                     if let apiError = try? decoder.decode(APIError.self, from: data) {
                         print("API Error: \(apiError.error.message)")
                     } else {
                         print("Decoding error: \(error)")
                     }
-                    completion(nil)
+                    DispatchQueue.main.async {
+                        completion(nil)
+                    }
                 }
             }
         }
